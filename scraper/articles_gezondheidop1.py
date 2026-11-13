@@ -240,11 +240,13 @@ def scrape_listing():
                 sys.exit(f"Could not open {START_URL}. Check your internet connection.")
             break
         items, soup = parse_listing(html, final)
-        new = [it for it in items if it["clean_url"] not in seen]
+        new = []
+        for it in items:
+            if it["clean_url"] not in seen:
+                seen.add(it["clean_url"])   # mark it as seen straight away
+                new.append(it)
         if not new:
             break
-        for it in new:
-            seen.add(it["clean_url"])
         all_items += new
         anchor = soup.select_one(".e-load-more-anchor[data-max-page]")
         total = f" of {anchor['data-max-page']}" if anchor is not None else ""
