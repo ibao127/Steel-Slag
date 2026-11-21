@@ -12,6 +12,7 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 DATA_DIR = SCRIPT_DIR / "data"
 INPUT_FILE = DATA_DIR / "articles_links.txt"
 OUTPUT_FILE = DATA_DIR / "article_content.csv"
+SCRAPED_FILE = DATA_DIR / "scraped_articles.csv"
 DELAY_SECONDS = 1.5
 
 HEADERS = {
@@ -197,16 +198,26 @@ def main():
         "status",
         "error",
     ]
+    scraped_fields = ["url", "title", "status"]
 
     with requests.Session() as session:
         session.headers.update(HEADERS)
-        with OUTPUT_FILE.open("w", newline="", encoding="utf-8-sig") as output:
+        with OUTPUT_FILE.open("w", newline="", encoding="utf-8-sig") as output, \
+                SCRAPED_FILE.open("w", newline="", encoding="utf-8-sig") as scraped_output:
             writer = csv.DictWriter(output, fieldnames=fields)
             writer.writeheader()
+            scraped_writer = csv.DictWriter(scraped_output, fieldnames=scraped_fields)
+            scraped_writer.writeheader()
 
             for index, url in enumerate(urls, start=1):
                 result = scrape_url(session, url)
                 writer.writerow(result)
+                if result["status"] == "ok":
+                    scraped_writer.writerow({
+                        "url": result["url"],
+                        "title": result["title"],
+                        "status": result["status"],
+                    })
                 output.flush()
                 print(
                     f"[{index}/{len(urls)}] {result['status']}: "
@@ -215,7 +226,7 @@ def main():
                 if index < len(urls):
                     time.sleep(DELAY_SECONDS)
 
-    print(f"\nSaved {len(urls)} rows to {OUTPUT_FILE}")
+    print(f"\nSaved results to {OUTPUT_FILE} and successful extractions to {SCRAPED_FILE}")
 
 
 if __name__ == "__main__":
